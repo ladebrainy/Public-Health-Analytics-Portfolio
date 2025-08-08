@@ -1,0 +1,311 @@
+---
+# Name: Ajayi Aishat
+# Student Number: A00276342
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+title: "QMM7301 Case Study 2" author: "Ajayi Aishat" date: "April 16,
+2025" output: html_document ---
+
+```{r setup, include=FALSE}
+# ***************************************************************
+# Setup: Load libraries
+# ***************************************************************
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(forecast)
+library(TTR)
+library(car)
+library(DescTools)
+```
+
+## Introduction
+
+This report presents an analysis of my personalized dataset, collected over **193 days** between **September 8, 2024**, and **April 15, 2025**. The data spans two academic terms: **93 days from the Fall semester** and **100 days from the Winter semester**, capturing a detailed view of my daily routines and habits.
+
+Throughout this period, I tracked **8 key variables** that reflect different aspects of my daily life, from academic activities to lifestyle choices. These variables are summarized in the table below:
+
+|        Variable        |           Type            |
+|:----------------------:|:-------------------------:|
+|          Date          |        Identifier         |
+|      Attend Class      |        Categorical        |
+|     Hours Studying     |       Quantitative        |
+|        Exercise        |   Categorical (Nominal)   |
+|      Social Media      |   Categorical (Ordinal)   |
+| Leaving the House (hrs)| Quantitative (Continuous) |
+|      Dish Cooked       |  Quantitative (Discrete)  |
+|   Term (F24 or W25)    |        Categorical        |
+
+The goal of this case study is to use my personalized data, alongside a class-wide dataset, to address the following research questions:
+
+1. **Are there differences in the average study times for students in the different analytics streams?**  
+2. **Is the distribution of days studied more than 3.13 hours (the average study time for McGill students) the same across program streams?**  
+3. **How does my personal study time change over time?**
+
+To answer these questions, I will analyze both datasets in R, using summary statistics, ANOVA, Chi-square tests, and time series models. This report is structured in three parts: an introduction to the data, the analysis and interpretation of results, and a conclusion. The entire analysis is written in R Markdown to allow for transparent, reproducible reporting.
+
+Summary statistics:
+
+```{r summary-stats, include=FALSE}
+# ***************************************************************
+# Summary statistics using real-time code
+# ***************************************************************
+aishat <- read.csv(file = "Personalisied.data.set.csv", header = TRUE)
+aishat.studymean <- mean(aishat$STUDY, na.rm = TRUE)
+aishat.studysd <- sd(aishat$STUDY, na.rm = TRUE)
+
+combined <- read.csv(file = "Combined.csv", header = TRUE, fileEncoding = "UTF-8-BOM")
+BAPG <- subset(combined, Program == "BAPG")
+CAGC <- subset(combined, Program == "CAGC")
+HAGC <- subset(combined, Program == "HAGC")
+
+BAPG.mean <- mean(BAPG$Study, na.rm = TRUE)
+BAPG.sd <- sd(BAPG$Study, na.rm = TRUE)
+CAGC.mean <- mean(CAGC$Study, na.rm = TRUE)
+CAGC.sd <- sd(CAGC$Study, na.rm = TRUE)
+HAGC.mean <- mean(HAGC$Study, na.rm = TRUE)
+HAGC.sd <- sd(HAGC$Study, na.rm = TRUE)
+combined.mean <- mean(combined$Study, na.rm = TRUE)
+combined.sd <- sd(combined$Study, na.rm = TRUE)
+
+summary_stats <- data.frame(
+  Group = c("Personal", "All", "BAPG", "CAGC", "HAGC"),
+  Mean = c(aishat.studymean, combined.mean, BAPG.mean, CAGC.mean, HAGC.mean),
+  SD = c(aishat.studysd, combined.sd, BAPG.sd, CAGC.sd, HAGC.sd)
+)
+knitr::kable(summary_stats, caption = "Summary Statistics of Study Hours")
+```
+
+This analysis uses ANOVA, Chi-square test, and Time Series modeling.
+| Data Set     | Mean                                 | Standard Deviation                 |
+|:-------------|:--------------------------------------|:----------------------------------|
+| Personal     | `r round(aishat.studymean, 2)`        | `r round(aishat.studysd, 2)`        |
+| All Students | `r round(combined.mean, 2)`           | `r round(combined.sd, 2)`           |
+| BAPG         | `r round(BAPG.mean, 2)`               | `r round(BAPG.sd, 2)`               |
+| CAGC         | `r round(CAGC.mean, 2)`               | `r round(CAGC.sd, 2)`               |
+| HAGC         | `r round(HAGC.mean, 2)`               | `r round(HAGC.sd, 2)`               |
+
+## Data Analysis
+
+To explore the key research questions of this case study, I applied statistical methods to both my personal dataset and the combined class data. Each method—ANOVA, Chi-square test, and time series analysis—offered different insights into how I study and how my habits compare with my peers.
+
+To determine whether study time differs across programs, I used a one-way ANOVA. While the visual summaries showed slight variation, the ANOVA test indicated that these differences were not statistically significant. This suggests that students across the BAPG, CAGC, and HAGC programs may be spending similar amounts of time studying, at least in this sampled dataset.
+
+I also investigated whether the proportion of days spent studying more than 3.13 hours (McGill’s reported average) varied across programs using a Chi-square test. The results again showed no significant relationship, meaning program stream did not appear to influence how frequently students exceeded this study time threshold.
+
+To understand my own study habits in depth, I used time series analysis on my daily study hours. This revealed fluctuations over time, with clear patterns such as increased study time during assignment periods or reduced hours on weekends. Moving average models helped smooth out this noise, and exponential smoothing provided a forecast suggesting my habits are relatively stable over time.
+
+The methods used in this analysis include:
+- **ANOVA** for comparing means across three program streams
+- **Chi-square test** to compare proportions of students above/below 3.13 study hours
+- **Time series analysis** to explore personal study trends and generate short-term forecasts
+
+Below are five real-life examples that give context to the quantitative results:
+
+1️⃣ **Evening Study Routine**: I tend to study more in the evenings after my kids go to bed. My weekday evenings are especially productive compared to weekends.
+
+2️⃣ **Exam Weeks**: During midterms and finals, my study hours spike. For instance, in November and March, I had multiple days with over 6 hours of study logged.
+
+3️⃣ **Low Study Days**: Some weekends show very little or no studying, often due to family commitments or burnout recovery.
+
+4️⃣ **Outdoor Days**: On days when I spend over 6 hours outside (e.g., attending therapy sessions, grocery shopping), my study hours drop significantly.
+
+5️⃣ **Meal Prep Impact**: When I cook more than 4 dishes in a day (typically weekends), I study less. This highlights how managing a large household directly affects my academic time.
+
+These examples support the patterns found in my quantitative results and give context to fluctuations in my data.
+
+### Part 1: ANOVA and Tukey HSD
+
+Before conducting the ANOVA, I verified the necessary assumptions:
+- **Independence**: Each observation (study time) comes from a different student, so values are not related.
+- **Normality**: A residual plot and histogram of the study times showed a roughly normal distribution.
+- **Equal variances**: The spread of data across groups appeared similar based on the residual vs fitted plot.
+
+
+**Hypotheses:**
+
+- $H_0$: The average study time is the same across all three program streams (BAPG, CAGC, and HAGC).
+- $H_A$: At least one program stream has a different average study time.
+
+```{r anova, include=FALSE}
+# ***************************************************************
+# ANOVA Test
+# ***************************************************************
+set.seed(42)  # To make results reproducible using last two digits of student number
+
+combined <- read.csv("Combined.csv")
+combined <- combined %>% filter(!is.na(Study)) %>% 
+  mutate(Above_3.13 = ifelse(Study > 3.13, "Above", "Below"))
+combined$Program <- as.factor(combined$Program)
+sample_df <- combined %>% group_by(Program) %>% sample_n(50)
+
+anova_result <- aov(Study ~ Program, data = sample_df)
+summary(anova_result)
+plot(anova_result, 1)
+
+```
+
+**Tukey HSD Test**
+
+```{r tukey, echo=FALSE}
+# ***************************************************************
+# Tukey Post Hoc Test
+# ***************************************************************
+TukeyHSD(anova_result)
+```
+Interpretation:
+After running the ANOVA, I followed up with a Tukey HSD test to compare the program groups individually. The overall ANOVA result gave a p-value of **0.619**, which is much greater than 0.05. This means there’s no evidence of a statistically significant difference in the average study time across the three programs.
+
+The Tukey HSD results supported this, showing that none of the pairwise comparisons were significant. For instance, the biggest difference (CAGC vs BAPG) had a p-value of **0.59**, which is still very far from being meaningful. So based on both tests, study time across programs is fairly consistent.
+
+This means that any small differences seen in the bar plot are more likely due to random variation than actual differences in how much students study depending on their program.
+
+
+**Bar Plot of Means**
+
+```{r anova-bar, echo=FALSE}
+# ***************************************************************
+# Bar Plot with Error Bars
+# ***************************************************************
+ggplot(sample_df, aes(Program, Study)) +
+  stat_summary(fun = mean, geom = "bar", fill = "skyblue") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2) +
+  labs(title = "Mean Study Hours by Program")
+```
+
+### Part 2: Chi-Square Test
+
+Before performing the Chi-square test, I reviewed the following assumptions:
+- **Independence**: Each student belongs to only one program stream.
+- **Random Sampling**: 50 students were randomly sampled from each stream.
+- **Expected Counts**: All expected values in the contingency table were greater than 5, satisfying the Chi-square requirement.
+
+**Hypothesis:** 
+-$H_0$: The distribution of study time (above or below 3.13 hours) is independent of program stream.
+
+-$H_A$: The distribution of study time (above or below 3.13 hours) depends on program stream.
+
+**Interpretation:**
+
+I conducted a Chi-square test to examine whether the distribution of days where students studied more or less than 3.13 hours is related to their program stream. The test produced a p-value of **0.2697**, which is much greater than 0.05.
+
+This means I **fail to reject the null hypothesis**. In other words, there is **no statistically significant relationship** between study time category (above or below 3.13 hours) and the program stream.
+
+The mosaic plot visually supports this finding. The proportions of “Above” and “Below” study days look fairly even across BAPG, CAGC, and HAGC, suggesting that students from different streams tend to follow similar patterns in how often they study more than the McGill average.
+
+```{r chisq, echo=FALSE}
+# ***************************************************************
+# Chi-Square Test
+# ***************************************************************
+set.seed(42)
+class <- read.csv("Combined.csv", fileEncoding = "UTF-8-BOM")
+BAPG <- subset(class, Program == "BAPG")
+CAGC <- subset(class, Program == "CAGC")
+HAGC <- subset(class, Program == "HAGC")
+
+library(dplyr)
+BAPG.50 <- sample_n(BAPG, 50)
+CAGC.50 <- sample_n(CAGC, 50)
+HAGC.50 <- sample_n(HAGC, 50)
+
+full.50 <- rbind(BAPG.50, CAGC.50, HAGC.50)
+full.50$HoursCategory <- ifelse(full.50$Study > 3.13, "Above", "Below")
+
+observed.hours <- table(full.50$Program, full.50$HoursCategory)
+chisq.test(observed.hours)
+
+mosaicplot(observed.hours, color = TRUE, main = "Chi-Square Mosaic Plot")
+```
+
+### Part 3: Time Series Analysis
+
+```{r timeseries, echo=FALSE}
+# ***************************************************************
+# Time Series Decomposition
+# ***************************************************************
+personal <- read.csv("Personalisied.data.set.csv")
+personal$Date <- as.Date(personal$DATE)
+personal_ts <- ts(personal$STUDY, frequency = 7)
+decomp <- decompose(personal_ts)
+plot(decomp)
+```
+**Interpretation:**
+
+The time series decomposition broke my study data into four components: observed, trend, seasonal, and random (residuals).  
+The **trend line** shows a few noticeable changes in my study pattern over time. For example, I had a steady increase in study hours during certain weeks—possibly when assignments or exams were approaching—followed by a dip, likely during breaks or weekends.  
+
+The **seasonal component** displays a strong repeating pattern across the weeks, suggesting that my study behavior follows a consistent weekly cycle. This aligns with how my weekdays are usually more productive than weekends.  
+
+The **random component** captures unpredictable spikes or drops in study time, which could reflect unexpected changes in my routine like family responsibilities, illness, or fatigue.  
+
+Overall, the decomposition confirms that my study habits have both a clear structure and some fluctuations—helping me better understand how my time is distributed across the semester.
+
+
+**Moving Average Models**
+
+```{r ma-models, echo=FALSE}
+# ***************************************************************
+# Moving Average Models and Error Comparison
+# ***************************************************************
+ma5 <- SMA(personal$STUDY, n = 5)
+ma7 <- SMA(personal$STUDY, n = 7)
+ma12 <- SMA(personal$STUDY, n = 12)
+
+auto_errors <- data.frame(
+  MA = c("MA-5", "MA-7", "MA-12"),
+  MSE = c(mean((personal$STUDY - ma5)^2, na.rm = TRUE),
+          mean((personal$STUDY - ma7)^2, na.rm = TRUE),
+          mean((personal$STUDY - ma12)^2, na.rm = TRUE))
+)
+auto_errors
+```
+**Interpretation:**
+
+I compared three moving average models with different window lengths (MA-5, MA-7, MA-12) to smooth out fluctuations in my daily study data.  
+The **MA-5** model had the lowest Mean Squared Error (MSE = 5.95), which suggests it was the most accurate at capturing the short-term trends in my study habits.  
+
+The error increased with longer windows (MA-7 and MA-12), meaning they smoothed the data too much and lost some of the useful short-term variation.  
+
+This tells me that my study behavior changes frequently, and shorter moving averages are better suited to reflect my week-to-week adjustments—like responding to assignment deadlines or balancing other responsibilities.
+
+**Exponential Smoothing Forecast**
+
+```{r hw-forecast, echo=FALSE}
+# ***************************************************************
+# Holt-Winters Forecast
+# ***************************************************************
+model <- HoltWinters(personal_ts)
+forecasted <- forecast(model, h = 5)
+plot(forecasted)
+```
+**Interpretation:**
+
+The Holt-Winters exponential smoothing model was used to forecast my study hours for the next five days. The forecast shows a relatively steady pattern with mild fluctuations, which is consistent with the structure seen in my decomposition and moving average models.
+
+The shaded area around the forecast line represents the confidence intervals, suggesting that although my study hours may vary slightly, they are expected to remain within a stable range. This aligns with my general routine of studying consistently throughout the week, especially during assignment-heavy periods.
+
+This model reinforces that my study habits are regular enough to be predictable, which is a positive sign of discipline and routine in my academic life.
+
+------------------------------------------------------------------------
+
+## Conclusion
+
+The analysis conducted using ANOVA, Chi-square testing, and time series forecasting provided a deeper understanding of my study behaviors and how they compare to peers in different program streams.
+
+- The **ANOVA** results showed no statistically significant difference in average study hours between the BAPG, CAGC, and HAGC streams, indicating that study time is fairly consistent across all three.
+- The **Chi-square test** revealed that the proportion of days where students studied more than 3.13 hours was independent of program stream, meaning program type does not influence how often students exceed the McGill average.
+- The **Time series analysis** confirmed weekly cycles in my personal study pattern, with evident trends, strong seasonality, and predictable short-term behaviors. The MA-5 model proved most accurate, and the Holt-Winters forecast suggests I will continue to study at a stable pace in the upcoming days.
+
+### Reflection
+
+This case study helped me gain insight into my academic habits. I was surprised to find how regular and structured my study time actually is. Even though I balance school with a busy household, the data showed that I often exceed the average study time of my peers.
+
+Identifying my most productive windows—typically weekday evenings—and noticing dips on weekends or after intensive tasks like cooking has helped me better understand how my personal responsibilities influence my academic work. I now feel more confident in my ability to manage time and plan ahead for demanding periods.
+
+Going forward, I intend to use these insights to optimize my study schedule and maintain a healthy balance between school, family, and self-care.
+
